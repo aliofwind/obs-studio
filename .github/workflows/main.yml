@@ -3,9 +3,7 @@ name: 'BUILD'
 on:
   push:
     paths-ignore: ['**.md']
-    branches:
-      - master
-      - 'release/**'
+    branches: ['*']
     tags: ['*']
   pull_request:
     paths-ignore: ['**.md']
@@ -348,14 +346,12 @@ jobs:
         run: CI/windows/02_build_obs.ps1 -BuildArch ${{ matrix.arch }}
 
       - name: 'Create build artifact'
-        if: ${{ success() && (github.event_name != 'pull_request' || env.SEEKING_TESTERS == '1') }}
         run: |
           CI/windows/03_package_obs.ps1 -BuildArch ${{ matrix.arch }} -Package
           $ArtifactName = Get-ChildItem -filter "obs-studio-*-windows-${{ matrix.arch }}.zip" -File
           Write-Output "FILE_NAME=${ArtifactName}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: 'Upload build artifact'
-        if: ${{ success() && (github.event_name != 'pull_request' || env.SEEKING_TESTERS == '1') }}
         uses: actions/upload-artifact@v3
         with:
           name: 'obs-studio-windows-${{ matrix.arch }}-${{ steps.setup.outputs.commitHash }}'
@@ -410,7 +406,6 @@ jobs:
     name: '03 - Windows Installer'
     runs-on: [windows-latest]
     needs: [windows_build]
-    if: ${{ startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request' }}
     env:
       BUILD_FOR_DISTRIBUTION: 'ON'
     steps:
@@ -464,7 +459,6 @@ jobs:
     env:
       HAVE_CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY != '' && secrets.MACOS_SIGNING_CERT != '' }}
       BUILD_FOR_DISTRIBUTION: 'ON'
-    if: ${{ startsWith(github.ref, 'refs/tags/') && github.event_name != 'pull_request' }}
     strategy:
       matrix:
         arch: ['x86_64', 'arm64']
